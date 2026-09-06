@@ -1,0 +1,17 @@
+# Хамааралтай сангууд — package.json/package-lock.json-оос дахин сэргээгддэг тул git-д оруулахгүй
+node_modules/
+
+# Тест ажиллуулах бүрд шинээр үүсдэг түр үр дүн (скриншот, видео, trace)
+/test-results/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# ЖИЧ: /playwright-report/ -г ЗОРИУДААР ignore хийгээгүй —
+# лабораторийн шаардлагын дагуу HTML тайлан болон trace файлыг репод хадгална.
+
+# Үйлдлийн систем / редакторын хог файлууд
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
