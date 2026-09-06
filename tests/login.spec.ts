@@ -1,51 +1,62 @@
-import { test, expect } from '@playwright/test';
-import { USERS, login, logout } from './helpers';
+import { test, expect, USERS } from './fixtures';
 
 /**
- * Тест №1-3: Нэвтрэх урсгал (authentication)
+ * Нэвтрэх урсгалын тестүүд (authentication).
  * Тестлэх сайт: https://www.saucedemo.com — тест хийх зориулалттай нээлттэй демо дэлгүүр.
  *
- * Тест бүр өөрөө нэвтэрч, өөрөө гардаг тул дарааллаас үл хамааран
+ * Тест бүр өөрөө хуудсаа нээж, өөрөө гардаг тул дарааллаас үл хамааран
  * дангаараа ажиллана (test isolation).
  */
 test.describe('Нэвтрэх үйлдэл', () => {
-  test('амжилттай нэвтрэх', async ({ page }) => {
-    await login(page, USERS.standard.username, USERS.standard.password);
+  test.beforeEach(async ({ loginPage }) => {
+    await loginPage.goto();
+  });
 
-    // 1) Хаяг нь бүтээгдэхүүний хуудас руу шилжсэн эсэх
-    await expect(page).toHaveURL('https://www.saucedemo.com/inventory.html');
+  test('амжилттай нэвтрэх', async ({ loginPage, inventoryPage, menu }) => {
+    await loginPage.login(USERS.standard.username, USERS.standard.password);
 
-    // 2) Хуудасны гарчиг "Products" харагдаж байна уу
-    await expect(page.getByText('Products')).toBeVisible();
+    // 1) Хаяг нь бүтээгдэхүүний хуудас руу шилжиж, гарчиг нь харагдсан эсэх
+    await inventoryPage.expectLoaded();
 
-    // 3) Бараануудын жагсаалт хоосон биш эсэх — 6 бараа байдаг
-    await expect(page.getByTestId('inventory-item')).toHaveCount(6);
+    // 2) Бараанууд үнэхээр ачаалагдсан эсэх — saucedemo дээр 6 бараа байдаг
+    await expect(inventoryPage.items).toHaveCount(6);
+
+    // 3) Шинээр нэвтэрсэн үед сагс хоосон байх ёстой (тоолуур огт харагдахгүй)
+    await expect(inventoryPage.cartBadge).toBeHidden();
 
     // Алхам 5: тестээ гарах үйлдлээр зөв төгсгөнө
-    await logout(page);
+    await menu.logout();
   });
 
-  test('амжилтгүй нэвтрэх — буруу нууц үг', async ({ page }) => {
-    await login(page, USERS.standard.username, 'buruu_nuuts_ug');
+  test('амжилтгүй нэвтрэх — буруу нууц үг', async ({ loginPage, inventoryPage, page }) => {
+    await loginPage.login(USERS.standard.username, 'buruu_nuuts_ug');
 
-    // Сөрөг тест: алдааны мессеж харагдаж, хаяг нь нэвтрэх хуудсандаа үлдэнэ
-    const error = page.getByTestId('error');
-    await expect(error).toBeVisible();
-    await expect(error).toHaveText(
+    // Сөрөг тест: алдааны мессеж яг тэр хэлбэрээрээ гарах ёстой
+    await loginPage.expectError(
       'Epic sadface: Username and password do not match any user in this service',
     );
-    await expect(page).toHaveURL('https://www.saucedemo.com/');
 
-    // Нэвтрээгүй тул бүтээгдэхүүний гарчиг харагдах ЁСГҮЙ
-    await expect(page.getByText('Products')).toBeHidden();
+    // Хаяг солигдоогүй, бүтээгдэхүүний гарчиг харагдах ЁСГҮЙ
+    await expect(page).toHaveURL('https://www.saucedemo.com/');
+    await expect(inventoryPage.title).toBeHidden();
   });
 
-  test('амжилтгүй нэвтрэх — түгжигдсэн хэрэглэгч', async ({ page }) => {
-    await login(page, USERS.locked.username, USERS.locked.password);
+  test('амжилтгүй нэвтрэх — түгжигдсэн хэрэглэгч', async ({ loginPage }) => {
+    // Нэр, нууц үг нь ЗӨВ ч гэсэн түгжигдсэн хэрэглэгчийг систем оруулах ёсгүй.
+    // Энэ нь "нууц үг таарч байвал нэвтрүүлнэ" гэсэн энгийн логикоос давсан шалгуур.
+    await loginPage.login(USERS.locked.username, USERS.locked.password);
 
-    // Зөв нууц үгтэй ч түгжигдсэн хэрэглэгчийг систем оруулахгүй
-    await expect(page.getByTestId('error')).toHaveText(
-      'Epic sadface: Sorry, this user has been locked out.',
-    );
+    await loginPage.expectError('Epic sadface: Sorry, this user has been locked out.');
+  });
+
+  test('амжилтгүй нэвтрэх — талбар хоосон', async ({ loginPage }) => {
+    // Хил хязгаарын тест (boundary): огт юу ч бөглөөгүй үед
+    await loginPage.loginButton.click();
+    await loginPage.expectError('Epic sadface: Username is required');
+
+    // Зөвхөн нэрээ бөглөсөн үед нууц үг шаардах ёстой
+    await loginPage.usernameInput.fill(USERS.standard.username);
+    await loginPage.loginButton.click();
+    await loginPage.expectError('Epic sadface: Password is required');
   });
 });

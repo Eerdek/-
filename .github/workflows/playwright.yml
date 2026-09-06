@@ -1,0 +1,46 @@
+# Тест бүрийг push / pull request бүрд Ubuntu Linux дээр автоматаар ажиллуулна.
+# Хичээлийн бодлогын дагуу CI орчин нь Linux — индустрийн серверүүд, CI/CD системүүд
+# дийлэнхдээ Linux дээр ажилладагтай нийцүүлэв.
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node.js суулгах
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Хамааралтай сангуудыг суулгах
+        run: npm ci
+
+      - name: TypeScript шалгах
+        run: npm run typecheck
+
+      - name: Playwright хөтөчүүдийг суулгах
+        run: npx playwright install --with-deps chromium
+
+      - name: Тест ажиллуулах
+        run: npm test
+
+      # Тест унасан ч тайланг үргэлж хадгална — CI дээр унасан шалтгааныг
+      # trace/видеогоор нь татаж аваад локал дээрээ шинжлэх боломжтой болно.
+      - name: HTML тайланг artifact болгож хадгалах
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
