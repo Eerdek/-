@@ -12,7 +12,7 @@
     "codegen": "playwright codegen https://www.saucedemo.com",
     "typecheck": "tsc --noEmit"
   },
-  "author": "",
+  "author": "Эрдэнэбаяр (B232270136)",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
